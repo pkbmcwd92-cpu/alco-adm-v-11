@@ -458,6 +458,14 @@ export const ZipExportModal: React.FC<ZipExportModalProps> = ({
                           SUCCESS
                         </span>
                       )}
+                      {item.status === 'PARTIAL' && (
+                        <span
+                          className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300"
+                          title={item.reason}
+                        >
+                          PARTIAL ({item.reason || 'Sebagian format berhasil'})
+                        </span>
+                      )}
                       {item.status === 'SKIPPED' && (
                         <span
                           className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300"

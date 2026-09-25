@@ -165,6 +165,7 @@ export const AdminDocsExport: React.FC<AdminDocsExportProps> = ({
     )
   );
   const isK13KKMValid = !!(k13KKM?.items && k13KKM.items.length > 0);
+  const isBulkExportEligible = documentMode === 'blank' || (isK13Curriculum ? isK13KDValid : isCPValid);
 
   const totalJP = (atp?.items || []).reduce((acc, curr) => acc + (Number(curr.jp) || 0), 0);
 
@@ -264,27 +265,35 @@ export const AdminDocsExport: React.FC<AdminDocsExportProps> = ({
         const pdfResult = await generatePdfDocument(type, effectiveContext);
         saveAs(pdfResult.blob, pdfResult.fileName);
         title = pdfResult.title;
+        const finalSnapshot: DocumentSnapshot =
+          type === 'ASESMEN' && pdfResult.snapshot
+            ? pdfResult.snapshot
+            : effectiveSnapshot;
         record = {
           id: existingRec?.id || `doc-${type.toLowerCase()}-${workspace?.id || 'ws'}-${Date.now()}`,
           type,
           title: pdfResult.title,
           status: 'completed',
           format: 'pdf',
-          lastGenerated: effectiveSnapshot.generatedAt,
+          lastGenerated: finalSnapshot.generatedAt,
           fileName: pdfResult.fileName,
           academicSettingId: academicSetting.id,
           workspaceId: workspace?.id,
-          snapshot: effectiveSnapshot,
+          snapshot: finalSnapshot,
         };
       } else {
         const docxResult = await generateDocument(type, effectiveContext);
         title = docxResult.title;
+        const finalSnapshot: DocumentSnapshot =
+          type === 'ASESMEN' && docxResult.record?.snapshot
+            ? docxResult.record.snapshot
+            : effectiveSnapshot;
         record = {
           ...docxResult.record,
           id: existingRec?.id || docxResult.record.id,
           format: 'docx',
-          lastGenerated: effectiveSnapshot.generatedAt,
-          snapshot: effectiveSnapshot,
+          lastGenerated: finalSnapshot.generatedAt,
+          snapshot: finalSnapshot,
         };
       }
 
@@ -296,10 +305,11 @@ export const AdminDocsExport: React.FC<AdminDocsExportProps> = ({
       if (onUpdateDocuments) {
         onUpdateDocuments(updatedList);
       }
+      const finalGeneratedAt = record.snapshot?.generatedAt || effectiveSnapshot.generatedAt;
       setExportSuccessMessage(
         forceNew
           ? `Dokumen ${title} (.${format}) berhasil diperbarui dengan data sekolah/kepsek terbaru!`
-          : `Dokumen ${title} (.${format}) [Snapshot: ${formatOfficialSnapshotDate(effectiveSnapshot.generatedAt)}] berhasil diunduh!`
+          : `Dokumen ${title} (.${format}) [Snapshot: ${formatOfficialSnapshotDate(finalGeneratedAt)}] berhasil diunduh!`
       );
       setTimeout(() => setExportSuccessMessage(null), 6000);
     } catch (err: unknown) {
@@ -387,17 +397,21 @@ export const AdminDocsExport: React.FC<AdminDocsExportProps> = ({
           if (format === 'pdf') {
             const pdfRes = await generatePdfDocument(type, context);
             saveAs(pdfRes.blob, pdfRes.fileName);
+            const finalSnapshot: DocumentSnapshot =
+              type === 'ASESMEN' && pdfRes.snapshot
+                ? pdfRes.snapshot
+                : snapshot;
             const rec: AppDocumentRecord = {
               id: `doc-${type.toLowerCase()}-${workspace?.id || 'ws'}-${Date.now()}`,
               type,
               title: pdfRes.title,
               status: 'completed',
               format: 'pdf',
-              lastGenerated: new Date().toISOString(),
+              lastGenerated: finalSnapshot.generatedAt,
               fileName: pdfRes.fileName,
               academicSettingId: academicSetting.id,
               workspaceId: workspace?.id,
-              snapshot,
+              snapshot: finalSnapshot,
             };
             const existingIdx = newRecords.findIndex((d) => d.type === type && (!d.workspaceId || d.workspaceId === workspace?.id));
             if (existingIdx >= 0) {
@@ -407,10 +421,15 @@ export const AdminDocsExport: React.FC<AdminDocsExportProps> = ({
             }
           } else {
             const res = await generateDocument(type, context);
+            const finalSnapshot: DocumentSnapshot =
+              type === 'ASESMEN' && res.record?.snapshot
+                ? res.record.snapshot
+                : snapshot;
             const rec: AppDocumentRecord = {
               ...res.record,
               format: 'docx',
-              snapshot,
+              lastGenerated: finalSnapshot.generatedAt,
+              snapshot: finalSnapshot,
             };
             const existingIdx = newRecords.findIndex((d) => d.type === type && (!d.workspaceId || d.workspaceId === workspace?.id));
             if (existingIdx >= 0) {
@@ -581,7 +600,7 @@ export const AdminDocsExport: React.FC<AdminDocsExportProps> = ({
               <button
                 id="btn-export-all-docs-docx"
                 onClick={() => handleGenerateAllDocs('docx')}
-                disabled={isExportingAll || isExportingZip || (documentMode === 'data' && !isCPValid)}
+                disabled={isExportingAll || isExportingZip || !isBulkExportEligible}
                 className="inline-flex items-center justify-center gap-1.5 bg-blue-900 hover:bg-blue-950 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-md shadow-blue-900/15 transition-all cursor-pointer disabled:opacity-50"
                 title="Unduh semua berkas Word satu per satu"
               >
@@ -601,7 +620,7 @@ export const AdminDocsExport: React.FC<AdminDocsExportProps> = ({
               <button
                 id="btn-export-all-docs-pdf"
                 onClick={() => handleGenerateAllDocs('pdf')}
-                disabled={isExportingAll || isExportingZip || (documentMode === 'data' && !isCPValid)}
+                disabled={isExportingAll || isExportingZip || !isBulkExportEligible}
                 className="inline-flex items-center justify-center gap-1.5 bg-rose-800 hover:bg-rose-900 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-md shadow-rose-900/15 transition-all cursor-pointer disabled:opacity-50"
                 title="Unduh semua berkas PDF satu per satu"
               >

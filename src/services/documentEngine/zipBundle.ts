@@ -293,13 +293,8 @@ export async function generateZipBundle(
   for (let i = 0; i < targetTypes.length; i++) {
     const type = targetTypes[i];
 
-    // Check existing snapshot
-    const existingRec = existingRecords?.find(
-      (r) => r.type === type && (!r.workspaceId || r.workspaceId === rawContext.workspace?.id)
-    );
-    const effectiveContext = existingRec?.snapshot
-      ? resolveEffectiveContext(effectiveContextBase, existingRec.snapshot)
-      : resolveEffectiveContext(effectiveContextBase);
+    // Always generate from raw/current live context for active ZIP export
+    const effectiveContext = resolveEffectiveContext(effectiveContextBase);
 
     // Strict validation check
     const validation = validateDocumentRequirements(type, effectiveContext);
@@ -323,7 +318,10 @@ export async function generateZipBundle(
     const seqNum = folderItemCount[folderCategory];
 
     const filesGenerated: string[] = [];
-    let itemError: string | null = null;
+    let pdfSuccess = false;
+    let docxSuccess = false;
+    let pdfError: string | null = null;
+    let docxError: string | null = null;
 
     // 1. PDF Export (using PDF Renderer)
     if (exportFormat === 'pdf' || exportFormat === 'both') {
@@ -338,16 +336,16 @@ export async function generateZipBundle(
           targetFolder.file(pdfFileName, pdfResult.blob);
           filesGenerated.push(pdfFileName);
           pdfCount++;
-          if (exportFormat === 'pdf') {
-            exportedCount++;
-          }
+          pdfSuccess = true;
           if (pdfResult.snapshot) {
             snapshots.push(pdfResult.snapshot);
           }
+        } else {
+          pdfError = 'File PDF kosong';
         }
       } catch (err: any) {
         console.warn(`[ZIP Engine] Error rendering PDF for ${type}:`, err);
-        itemError = err?.message || 'Gagal merender PDF';
+        pdfError = err?.message || 'Gagal merender PDF';
       }
     }
 
@@ -368,35 +366,80 @@ export async function generateZipBundle(
           targetFolder.file(docxFileName, docxResult.blob);
           filesGenerated.push(docxFileName);
           docxCount++;
-          if (exportFormat === 'docx') {
-            exportedCount++;
-          }
+          docxSuccess = true;
           if (docxResult.record?.snapshot) {
             snapshots.push(docxResult.record.snapshot);
           }
+        } else {
+          docxError = 'File Word (DOCX) kosong';
         }
       } catch (err: any) {
         console.warn(`[ZIP Engine] Error rendering DOCX for ${type}:`, err);
-        itemError = err?.message || 'Gagal merender DOCX';
+        docxError = err?.message || 'Gagal merender DOCX';
       }
     }
 
-    if (exportFormat === 'both' && (pdfCount > 0 || docxCount > 0)) {
-      exportedCount = Math.max(pdfCount, docxCount);
+    if (filesGenerated.length > 0) {
+      exportedCount++;
     }
 
-    if (filesGenerated.length > 0) {
-      itemResults.push({
-        type,
-        status: 'SUCCESS',
-        filesGenerated,
-      });
+    if (exportFormat === 'both') {
+      if (pdfSuccess && docxSuccess) {
+        itemResults.push({
+          type,
+          status: 'SUCCESS',
+          filesGenerated,
+        });
+      } else if (pdfSuccess || docxSuccess) {
+        const partialReason = !pdfSuccess
+          ? (pdfError ? `PDF gagal: ${pdfError}` : 'PDF gagal dibuat')
+          : (docxError ? `Word gagal: ${docxError}` : 'Word gagal dibuat');
+        itemResults.push({
+          type,
+          status: 'PARTIAL',
+          reason: partialReason,
+          filesGenerated,
+        });
+      } else {
+        const failReasons = [
+          pdfError ? `PDF: ${pdfError}` : null,
+          docxError ? `Word: ${docxError}` : null,
+        ].filter(Boolean).join('; ');
+        itemResults.push({
+          type,
+          status: 'FAILED',
+          reason: failReasons || 'Gagal membuat file dokumen',
+        });
+      }
+    } else if (exportFormat === 'pdf') {
+      if (pdfSuccess) {
+        itemResults.push({
+          type,
+          status: 'SUCCESS',
+          filesGenerated,
+        });
+      } else {
+        itemResults.push({
+          type,
+          status: 'FAILED',
+          reason: pdfError || 'Gagal merender PDF',
+        });
+      }
     } else {
-      itemResults.push({
-        type,
-        status: 'FAILED',
-        reason: itemError || 'Gagal membuat file dokumen',
-      });
+      // exportFormat === 'docx'
+      if (docxSuccess) {
+        itemResults.push({
+          type,
+          status: 'SUCCESS',
+          filesGenerated,
+        });
+      } else {
+        itemResults.push({
+          type,
+          status: 'FAILED',
+          reason: docxError || 'Gagal merender DOCX',
+        });
+      }
     }
   }
 

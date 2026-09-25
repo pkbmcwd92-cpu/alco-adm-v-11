@@ -76,7 +76,7 @@ export interface ZipExportOptions {
 
 export interface ZipExportItemStatus {
   type: DocumentType;
-  status: 'SUCCESS' | 'SKIPPED' | 'FAILED';
+  status: 'SUCCESS' | 'PARTIAL' | 'SKIPPED' | 'FAILED';
   reason?: string;
   filesGenerated?: string[];
 }
