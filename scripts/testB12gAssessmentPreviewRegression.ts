@@ -7,6 +7,7 @@ import {
   TeacherProfile,
   AcademicSetting,
   AssessmentPlan,
+  WrittenAssessmentInstrument,
 } from '../src/types';
 import {
   createAssessmentDocumentSnapshot,
@@ -66,10 +67,12 @@ function runTests() {
     profileId: 'profile-1',
     academicYear: '2024/2025',
     semester: '1 (Ganjil)',
-    grade: 'X',
+    level: 'SMA',
+    grade: 'Kelas 10',
     phase: 'E',
     subject: 'Biologi',
     curriculum: 'Kurikulum Merdeka',
+    curriculumType: 'KURIKULUM_MERDEKA',
     updatedAt: new Date().toISOString(),
   };
 
@@ -82,7 +85,7 @@ function runTests() {
     timing: 'POST',
     scopeType: 'TP',
     instruments: [
-      { id: 'inst-p1', type: 'WRITTEN_TEST', label: 'Tes Tertulis' } as any,
+      { id: 'inst-p1', type: 'WRITTEN_TEST', label: 'Tes Tertulis' },
     ],
     tpIds: ['tp-1'],
     criterionIds: [],
@@ -103,11 +106,10 @@ function runTests() {
     instruments: [
       {
         id: 'inst-1',
-        assessmentPlanInstrumentId: 'inst-p1',
         type: 'WRITTEN_TEST',
         title: 'Tes Tertulis Draf',
         items: [],
-      } as any,
+      } as WrittenAssessmentInstrument,
     ],
     answerKeys: [],
     scoringGuides: [],
@@ -139,9 +141,14 @@ function runTests() {
     academicSetting: mockAcademicSetting,
     workspace: {
       id: 'ws-1',
+      profileId: 'profile-1',
+      schoolId: 'school-1',
       academicSettingId: 'setting-1',
+      name: 'Biologi - Kelas 10',
       documentDate: '2025-01-15',
-    } as any,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
     assessmentPlans: [mockPlan],
     assessmentPackages: [draftPackage, perluDilengkapiPackage],
     documentMode: 'data',

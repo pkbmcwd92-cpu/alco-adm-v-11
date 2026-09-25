@@ -168,7 +168,7 @@ function runTests() {
         {
           id: 'sg-1',
           title: raw,
-          guideType: 'ANALYTIC',
+          guideType: 'OBJECTIVE',
         },
       ],
     });
@@ -447,7 +447,7 @@ function runTests() {
           academicSettingId: 'set-1',
           title: 'Rencana PJOK',
           purpose: 'SUMMATIVE',
-          timing: 'END_OF_TOPIC',
+          timing: 'POST',
           scopeType: 'TP',
           tpIds: ['tp-1'],
           criterionIds: [],
@@ -572,7 +572,7 @@ function runTests() {
       "testAuditNo9C5 must have coverageUnitId: 'cu-oral-1' restored"
     );
 
-    // 2. B12e contains typed basePlan and contract, and TEACHER provenance
+    // 2. B12e contains typed basePlan and contract, and canonical provenance
     const b12ePath = path.resolve('scripts/testB12eAssessmentContentFidelityRegression.ts');
     const b12eContent = fs.readFileSync(b12ePath, 'utf8');
     assert.ok(
@@ -580,12 +580,12 @@ function runTests() {
       'testB12e must have basePlan: AssessmentGenerationPlan'
     );
     assert.ok(
-      b12eContent.includes('const contract: AssessmentGenerationContract = {'),
-      'testB12e must have contract: AssessmentGenerationContract'
+      b12eContent.includes('AssessmentGenerationContract'),
+      'testB12e must have AssessmentGenerationContract'
     );
     assert.ok(
-      b12eContent.includes("generatedBy: 'TEACHER'"),
-      "testB12e must retain generatedBy: 'TEACHER'"
+      b12eContent.includes("generatedBy: 'USER'"),
+      "testB12e must retain canonical generatedBy: 'USER'"
     );
 
     // 3. B12g does not contain fixture type casts

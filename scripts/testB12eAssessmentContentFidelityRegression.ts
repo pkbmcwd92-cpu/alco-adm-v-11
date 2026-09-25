@@ -11,8 +11,12 @@ import {
   ProjectAssessmentInstrument,
   ProductAssessmentInstrument,
   PortfolioAssessmentInstrument,
+  SubjectAssessmentProfile,
+  AssessmentGenerationContractUnit,
 } from '../src/types';
-import { AssessmentDocumentSnapshot } from '../src/types/assessmentExport';
+import {
+  CanonicalAssessmentDocumentSnapshot,
+} from '../src/types/assessmentExport';
 import {
   parseAndValidateRawAIResponse,
   mapGeneratedUnitsToAssessmentPackage,
@@ -37,27 +41,52 @@ function runTests() {
 
   console.log('=== B.1.2e ASSESSMENT CONTENT FIDELITY REGRESSION SUITE ===\n');
 
+  const defaultSubjectProfile: SubjectAssessmentProfile = {
+    subjectKey: 'pjok',
+    subjectLabel: 'Pendidikan Jasmani',
+    competencyDomains: [],
+    supportedEvidenceTypes: ['PRODUCT', 'PERFORMANCE'],
+    supportedInstrumentTypes: ['PERFORMANCE', 'ASSIGNMENT', 'PROJECT', 'PRODUCT', 'PORTFOLIO'],
+    recommendationRules: [],
+    provenance: [],
+    profileStatus: 'SPECIFIC',
+  };
+
   const basePlan: AssessmentGenerationPlan = {
     academicSettingId: 'setting-b12e',
     coverageUnits: [
-      { id: 'cov-perf-1', evidenceType: 'PROCESS' } as any,
-      { id: 'cov-perf-2', evidenceType: 'PROCESS' } as any,
-      { id: 'cov-perf-3', evidenceType: 'PROCESS' } as any,
-      { id: 'cov-assign-1', evidenceType: 'PRODUCT' } as any,
-      { id: 'cov-proj-1', evidenceType: 'PRODUCT' } as any,
-      { id: 'cov-prod-1', evidenceType: 'PRODUCT' } as any,
-      { id: 'cov-rub-1', evidenceType: 'PRODUCT' } as any,
-      { id: 'cov-rub-assign', evidenceType: 'PRODUCT' } as any,
-      { id: 'cov-rub-prod', evidenceType: 'PRODUCT' } as any,
-      { id: 'cov-prod-empty', evidenceType: 'PRODUCT' } as any,
+      { id: 'cov-perf-1', evidenceType: 'PERFORMANCE', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
+      { id: 'cov-perf-2', evidenceType: 'PERFORMANCE', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
+      { id: 'cov-perf-3', evidenceType: 'PERFORMANCE', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
+      { id: 'cov-assign-1', evidenceType: 'PRODUCT', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
+      { id: 'cov-proj-1', evidenceType: 'PRODUCT', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
+      { id: 'cov-prod-1', evidenceType: 'PRODUCT', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
+      { id: 'cov-rub-1', evidenceType: 'PRODUCT', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
+      { id: 'cov-rub-assign', evidenceType: 'PRODUCT', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
+      { id: 'cov-rub-prod', evidenceType: 'PRODUCT', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
+      { id: 'cov-prod-empty', evidenceType: 'PRODUCT', objectiveRefId: 'tp-1', provenance: [], status: 'RESOLVED', issues: [] },
     ],
     generationSpec: {
       assessmentPlanId: 'plan-b12e',
-      academicSettingId: 'setting-1',
-      kisiKisiRows: [],
-      rubricDrafts: [],
-      scoringGuideDrafts: [],
-    } as any,
+      assessmentPackageId: 'pkg-b12e',
+      academicSettingId: 'setting-b12e',
+      curriculumContext: {
+        academicSettingId: 'setting-b12e',
+        curriculumType: 'KURIKULUM_MERDEKA',
+        grade: 4,
+        phase: 'B',
+      },
+      objectives: [],
+      criteria: [],
+      subjectProfile: defaultSubjectProfile,
+      evidenceRecommendations: [],
+      plannedInstrumentTypes: ['PERFORMANCE', 'ASSIGNMENT', 'PROJECT', 'PRODUCT', 'PORTFOLIO'],
+      sourceContext: [],
+      resolution: {
+        status: 'RESOLVED',
+        issues: [],
+      },
+    },
     constraints: {
       assemblyMode: 'AUTO_RECOMMENDED',
     },
@@ -79,13 +108,8 @@ function runTests() {
     },
   };
 
-  const defaultSubjectProfile: any = {
-    subjectKey: 'pjok',
-    subjectLabel: 'Pendidikan Jasmani',
-  };
-
   function createContract(
-    units: any[],
+    units: AssessmentGenerationContractUnit[],
     overrides: Partial<AssessmentGenerationContract> = {}
   ): AssessmentGenerationContract {
     return {
@@ -93,6 +117,7 @@ function runTests() {
       assessmentPackageId: 'pkg-b12e',
       academicSettingId: 'setting-b12e',
       curriculumContext: {
+        academicSettingId: 'setting-b12e',
         curriculumType: 'KURIKULUM_MERDEKA',
         grade: 4,
         phase: 'B',
@@ -100,6 +125,40 @@ function runTests() {
       subjectProfile: defaultSubjectProfile,
       sourceContext: [],
       units,
+      ...overrides,
+    };
+  }
+
+  function createMockSnapshot(
+    pkg: AssessmentPackage,
+    overrides: Partial<CanonicalAssessmentDocumentSnapshot> = {}
+  ): CanonicalAssessmentDocumentSnapshot {
+    return {
+      snapshotId: `snap-${pkg.id}`,
+      mode: 'CANONICAL_PACKAGE',
+      documentType: 'ASESMEN',
+      documentDate: '2026-09-25',
+      formattedDocumentDate: '25 September 2026',
+      assessmentPlanId: 'plan-b12e',
+      assessmentPackageId: pkg.id,
+      assessmentPackageRevision: pkg.revision ?? 1,
+      packageTitle: pkg.title,
+      schoolName: 'SMA Bintang Bangsa',
+      principalName: 'Kepala Sekolah',
+      teacherName: 'Guru PJOK',
+      academicYear: '2026/2027',
+      semester: '1 (Ganjil)',
+      grade: 'Kelas 4',
+      subject: 'PJOK',
+      curriculum: 'Kurikulum Merdeka',
+      blueprintItems: pkg.blueprintItems || [],
+      instruments: pkg.instruments || [],
+      answerKeys: pkg.answerKeys || [],
+      scoringGuides: pkg.scoringGuides || [],
+      rubrics: pkg.rubrics || [],
+      resolvedObjectives: {},
+      documentMode: 'data',
+      generatedAt: new Date().toISOString(),
       ...overrides,
     };
   }
@@ -114,8 +173,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'PERFORMANCE',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     const rawAI = JSON.stringify({
@@ -150,8 +210,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'PERFORMANCE',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     const rawAI = JSON.stringify({
@@ -185,8 +246,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'PERFORMANCE',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     const rawAI = JSON.stringify({
@@ -210,23 +272,7 @@ function runTests() {
     assert.strictEqual(inst.aspects[0].weight, 40);
     assert.strictEqual(inst.aspects[1].weight, 60);
 
-    const snapshot: AssessmentDocumentSnapshot = {
-      assessmentPackageId: pkg.id,
-      assessmentPlanId: 'plan-b12e',
-      school: {} as any,
-      teacher: {} as any,
-      academicSetting: {} as any,
-      assessmentPlan: { id: 'plan-b12e', title: 'Plan B12e' } as any,
-      blueprintItems: [],
-      instruments: pkg.instruments,
-      answerKeys: [],
-      scoringGuides: [],
-      rubrics: [],
-      resolvedObjectives: {},
-      documentMode: 'data',
-      generatedAt: new Date().toISOString(),
-    } as any;
-
+    const snapshot = createMockSnapshot(pkg);
     const model = buildNormalizedAssessmentDocumentModel(snapshot);
     const normInst = model.instruments.list[0];
     assert(normInst.performanceAspects && normInst.performanceAspects.length === 2);
@@ -244,8 +290,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'ASSIGNMENT',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     // Subtest 4a: Derived instructions from taskPrompt, expectedDeliverable to expectedOutput
@@ -296,8 +343,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'PROJECT',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     const rawAI = JSON.stringify({
@@ -317,23 +365,7 @@ function runTests() {
     assert.strictEqual(inst.projectBrief, 'Rancang infografis energi terbarukan.');
     assert.strictEqual(inst.expectedDeliverable, 'Infografis digital format PDF.');
 
-    const snapshot: AssessmentDocumentSnapshot = {
-      assessmentPackageId: pkg.id,
-      assessmentPlanId: 'plan-b12e',
-      school: {} as any,
-      teacher: {} as any,
-      academicSetting: {} as any,
-      assessmentPlan: { id: 'plan-b12e', title: 'Plan B12e' } as any,
-      blueprintItems: [],
-      instruments: pkg.instruments,
-      answerKeys: [],
-      scoringGuides: [],
-      rubrics: [],
-      resolvedObjectives: {},
-      documentMode: 'data',
-      generatedAt: new Date().toISOString(),
-    } as any;
-
+    const snapshot = createMockSnapshot(pkg);
     const model = buildNormalizedAssessmentDocumentModel(snapshot);
     const normInst = model.instruments.list[0];
     assert.strictEqual(normInst.projectBrief, 'Rancang infografis energi terbarukan.');
@@ -350,8 +382,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'PRODUCT',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     const rawAI = JSON.stringify({
@@ -371,23 +404,7 @@ function runTests() {
     assert.strictEqual(inst.productBrief, 'Buat maket jembatan sederhana.');
     assert.strictEqual(inst.expectedProduct, 'Maket jembatan stik es krim.');
 
-    const snapshot: AssessmentDocumentSnapshot = {
-      assessmentPackageId: pkg.id,
-      assessmentPlanId: 'plan-b12e',
-      school: {} as any,
-      teacher: {} as any,
-      academicSetting: {} as any,
-      assessmentPlan: { id: 'plan-b12e', title: 'Plan B12e' } as any,
-      blueprintItems: [],
-      instruments: pkg.instruments,
-      answerKeys: [],
-      scoringGuides: [],
-      rubrics: [],
-      resolvedObjectives: {},
-      documentMode: 'data',
-      generatedAt: new Date().toISOString(),
-    } as any;
-
+    const snapshot = createMockSnapshot(pkg);
     const model = buildNormalizedAssessmentDocumentModel(snapshot);
     const normInst = model.instruments.list[0];
     assert.strictEqual(normInst.productBrief, 'Buat maket jembatan sederhana.');
@@ -404,8 +421,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'PROJECT',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     const rawAI = JSON.stringify({
@@ -421,8 +439,8 @@ function runTests() {
               { label: 'Kerapian', indicator: 'Slide terstruktur', weight: 50 },
             ],
             scale: [
-              { label: 'Baik', score: 3, descriptor: 'Lengkap' },
-              { label: 'Cukup', score: 2, descriptor: 'Sebagian' },
+              { label: 'Baik', score: 3, descriptor: 'Lengkap', order: 1 },
+              { label: 'Cukup', score: 2, descriptor: 'Sebagian', order: 2 },
             ],
           },
         },
@@ -435,23 +453,7 @@ function runTests() {
     assert.strictEqual(pkg.rubrics[0].criteria[0].weight, 50);
     assert.strictEqual(pkg.rubrics[0].criteria[1].weight, 50);
 
-    const snapshot: AssessmentDocumentSnapshot = {
-      assessmentPackageId: pkg.id,
-      assessmentPlanId: 'plan-b12e',
-      school: {} as any,
-      teacher: {} as any,
-      academicSetting: {} as any,
-      assessmentPlan: { id: 'plan-b12e', title: 'Plan B12e' } as any,
-      blueprintItems: [],
-      instruments: pkg.instruments,
-      answerKeys: [],
-      scoringGuides: [],
-      rubrics: pkg.rubrics,
-      resolvedObjectives: {},
-      documentMode: 'data',
-      generatedAt: new Date().toISOString(),
-    } as any;
-
+    const snapshot = createMockSnapshot(pkg);
     const model = buildNormalizedAssessmentDocumentModel(snapshot);
     assert.strictEqual(model.rubrics.list[0].criteria[0].weight, 50);
     assert.strictEqual(model.rubrics.list[0].criteria[1].weight, 50);
@@ -467,8 +469,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'ASSIGNMENT',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     const rawAI = JSON.stringify({
@@ -495,6 +498,7 @@ function runTests() {
                 label: 'Baik',
                 score: 3,
                 descriptor: 'Memenuhi kriteria.',
+                order: 1,
               },
             ],
           },
@@ -508,23 +512,7 @@ function runTests() {
     assert.strictEqual(pkg.rubrics[0].criteria[0].weight, 60);
     assert.strictEqual(pkg.rubrics[0].criteria[1].weight, 40);
 
-    const snapshot: AssessmentDocumentSnapshot = {
-      assessmentPackageId: pkg.id,
-      assessmentPlanId: 'plan-b12e',
-      school: {} as any,
-      teacher: {} as any,
-      academicSetting: {} as any,
-      assessmentPlan: { id: 'plan-b12e', title: 'Plan B12e' } as any,
-      blueprintItems: [],
-      instruments: pkg.instruments,
-      answerKeys: [],
-      scoringGuides: [],
-      rubrics: pkg.rubrics,
-      resolvedObjectives: {},
-      documentMode: 'data',
-      generatedAt: new Date().toISOString(),
-    } as any;
-
+    const snapshot = createMockSnapshot(pkg);
     const model = buildNormalizedAssessmentDocumentModel(snapshot);
     assert.strictEqual(model.rubrics.list[0].criteria[0].weight, 60);
     assert.strictEqual(model.rubrics.list[0].criteria[1].weight, 40);
@@ -540,8 +528,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'PRODUCT',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     const rawAI = JSON.stringify({
@@ -568,6 +557,7 @@ function runTests() {
                 label: 'Baik',
                 score: 3,
                 descriptor: 'Memenuhi kriteria.',
+                order: 1,
               },
             ],
           },
@@ -581,23 +571,7 @@ function runTests() {
     assert.strictEqual(pkg.rubrics[0].criteria[0].weight, 70);
     assert.strictEqual(pkg.rubrics[0].criteria[1].weight, 30);
 
-    const snapshot: AssessmentDocumentSnapshot = {
-      assessmentPackageId: pkg.id,
-      assessmentPlanId: 'plan-b12e',
-      school: {} as any,
-      teacher: {} as any,
-      academicSetting: {} as any,
-      assessmentPlan: { id: 'plan-b12e', title: 'Plan B12e' } as any,
-      blueprintItems: [],
-      instruments: pkg.instruments,
-      answerKeys: [],
-      scoringGuides: [],
-      rubrics: pkg.rubrics,
-      resolvedObjectives: {},
-      documentMode: 'data',
-      generatedAt: new Date().toISOString(),
-    } as any;
-
+    const snapshot = createMockSnapshot(pkg);
     const model = buildNormalizedAssessmentDocumentModel(snapshot);
     assert.strictEqual(model.rubrics.list[0].criteria[0].weight, 70);
     assert.strictEqual(model.rubrics.list[0].criteria[1].weight, 30);
@@ -637,7 +611,31 @@ function runTests() {
     };
 
     const result = validateAssessmentPackage(portfolioPkg, {
-      assessmentPlan: { id: 'plan-port-1', title: 'Rencana Portofolio' } as any,
+      academicSetting: {
+        id: 'setting-1',
+        profileId: 'prof-1',
+        curriculum: 'Kurikulum Merdeka',
+        academicYear: '2025/2026',
+        semester: '1 (Ganjil)',
+        grade: 'Kelas 4',
+        phase: 'B',
+        subject: 'PJOK',
+        updatedAt: new Date().toISOString(),
+      },
+      assessmentPlan: {
+        id: 'plan-port-1',
+        academicSettingId: 'setting-1',
+        title: 'Rencana Portofolio',
+        workflowStatus: 'SIAP',
+        purpose: 'SUMMATIVE',
+        timing: 'POST',
+        scopeType: 'TP',
+        tpIds: [],
+        criterionIds: [],
+        instruments: [{ id: 'inst-port-1', type: 'PORTFOLIO', label: 'Portofolio' }],
+        createdAt: '',
+        updatedAt: '',
+      },
     });
 
     const hasPortfolioInstructionError = result.errors.some((e) =>
@@ -684,7 +682,31 @@ function runTests() {
     };
 
     const result = validateAssessmentPackage(invalidPortfolioPkg, {
-      assessmentPlan: { id: 'plan-port-invalid', title: 'Rencana Portofolio' } as any,
+      academicSetting: {
+        id: 'setting-1',
+        profileId: 'prof-1',
+        curriculum: 'Kurikulum Merdeka',
+        academicYear: '2025/2026',
+        semester: '1 (Ganjil)',
+        grade: 'Kelas 4',
+        phase: 'B',
+        subject: 'PJOK',
+        updatedAt: new Date().toISOString(),
+      },
+      assessmentPlan: {
+        id: 'plan-port-invalid',
+        academicSettingId: 'setting-1',
+        title: 'Rencana Portofolio',
+        workflowStatus: 'SIAP',
+        purpose: 'SUMMATIVE',
+        timing: 'POST',
+        scopeType: 'TP',
+        tpIds: [],
+        criterionIds: [],
+        instruments: [{ id: 'inst-port-invalid-1', type: 'PORTFOLIO', label: 'Portofolio' }],
+        createdAt: '',
+        updatedAt: '',
+      },
     });
 
     assert.strictEqual(result.valid, false, 'Portfolio without evidence requirements must be invalid');
@@ -732,7 +754,31 @@ function runTests() {
     };
 
     const result = validateAssessmentPackage(invalidPortfolioPkg, {
-      assessmentPlan: { id: 'plan-port-invalid', title: 'Rencana Portofolio' } as any,
+      academicSetting: {
+        id: 'setting-1',
+        profileId: 'prof-1',
+        curriculum: 'Kurikulum Merdeka',
+        academicYear: '2025/2026',
+        semester: '1 (Ganjil)',
+        grade: 'Kelas 4',
+        phase: 'B',
+        subject: 'PJOK',
+        updatedAt: new Date().toISOString(),
+      },
+      assessmentPlan: {
+        id: 'plan-port-invalid',
+        academicSettingId: 'setting-1',
+        title: 'Rencana Portofolio',
+        workflowStatus: 'SIAP',
+        purpose: 'SUMMATIVE',
+        timing: 'POST',
+        scopeType: 'TP',
+        tpIds: [],
+        criterionIds: [],
+        instruments: [{ id: 'inst-port-invalid-2', type: 'PORTFOLIO', label: 'Portofolio' }],
+        createdAt: '',
+        updatedAt: '',
+      },
     });
 
     assert.strictEqual(result.valid, false, 'Portfolio with undefined evidence requirements must be invalid');
@@ -815,8 +861,9 @@ function runTests() {
         allocationUnit: 'TASK',
         instrumentType: 'PRODUCT',
         objectiveRefId: 'tp-1',
+        objectiveText: 'Memahami PJOK',
         requiredCount: 1,
-      } as any,
+      },
     ]);
 
     const rawAI = JSON.stringify({

@@ -13,7 +13,11 @@ import type {
   PerformanceAssessmentInstrument,
   AssessmentAnswerKey,
   AssessmentScoringGuide,
+  SchoolData,
+  TeacherProfile,
+  AcademicSetting,
 } from '../src/types';
+import type { DocumentGenerationContext } from '../src/services/documentEngine/types';
 
 console.log('=== B.1.2j ASSESSMENT EXPORT FIDELITY REGRESSION SUITE ===');
 
@@ -521,15 +525,57 @@ function runTests() {
   // TEST 25 — EXPORT ELIGIBILITY UNCHANGED
   // ----------------------------------------------------
   test('TEST 25: checkAssessmentExportEligibility strictly blocks non-SIAP and needsReview packages', () => {
+    const mockSchool: SchoolData = {
+      id: 'school-1',
+      name: 'SD Negeri Nusantara',
+      npsn: '12345678',
+      address: 'Jl. Pemuda No. 10',
+      village: 'Gambir',
+      district: 'Kec. Gambir',
+      regency: 'Jakarta Pusat',
+      province: 'DKI Jakarta',
+      principalName: 'Kepala Sekolah',
+      principalNip: '197001011995011001',
+      createdAt: '2026-09-23T00:00:00.000Z',
+      updatedAt: '2026-09-23T00:00:00.000Z',
+    };
+    const mockProfile: TeacherProfile = {
+      id: 'profile-1',
+      name: 'Guru Penjas',
+      nip: '198505052010011015',
+      status: 'PNS',
+      defaultSubject: 'PJOK',
+      defaultLevel: 'SD',
+      createdAt: '2026-09-23T00:00:00.000Z',
+      updatedAt: '2026-09-23T00:00:00.000Z',
+    };
+    const mockSetting: AcademicSetting = {
+      id: 'setting-1',
+      profileId: 'profile-1',
+      academicYear: '2026/2027',
+      semester: '1 (Ganjil)',
+      grade: 'Kelas 5',
+      phase: 'C',
+      subject: 'PJOK',
+      curriculum: 'Kurikulum Merdeka',
+      level: 'SD',
+      updatedAt: '2026-09-23T00:00:00.000Z',
+    };
+
     const draftPkg: AssessmentPackage = createBasePackageFixture({
       id: 'pkg-draft',
       workflowStatus: 'DRAFT',
       needsReview: false,
     });
 
-    const resDraft = checkAssessmentExportEligibility({
+    const ctxDraft: DocumentGenerationContext = {
+      school: mockSchool,
+      profile: mockProfile,
+      academicSetting: mockSetting,
       assessmentPackages: [draftPkg],
-    });
+    };
+
+    const resDraft = checkAssessmentExportEligibility(ctxDraft);
     assert.strictEqual(resDraft.eligible, false);
 
     const reviewPkg: AssessmentPackage = createBasePackageFixture({
@@ -538,9 +584,14 @@ function runTests() {
       needsReview: true,
     });
 
-    const resReview = checkAssessmentExportEligibility({
+    const ctxReview: DocumentGenerationContext = {
+      school: mockSchool,
+      profile: mockProfile,
+      academicSetting: mockSetting,
       assessmentPackages: [reviewPkg],
-    });
+    };
+
+    const resReview = checkAssessmentExportEligibility(ctxReview);
     assert.strictEqual(resReview.eligible, false);
   });
 
